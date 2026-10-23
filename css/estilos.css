@@ -1,0 +1,97 @@
+/* ===== RESETEO ===== */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'Segoe UI', sans-serif;
+  background: #1e1e1e;
+  color: #e8e8e8;
+  line-height: 1.6;
+}
+
+/* ===== HERO ===== */
+.hero { position: relative; height: 60vh; overflow: hidden; }
+.hero__img { width: 100%; height: 100%; object-fit: cover; filter: brightness(0.6); }
+.hero__texto {
+  position: absolute; top: 50%; left: 50%;
+  transform: translate(-50%, -50%); text-align: center;
+}
+.hero__texto h1 { font-size: 3rem; color: #7cff7c; text-shadow: 2px 2px 6px #000; }
+.hero__texto p { font-size: 1.2rem; }
+
+/* ===== MENÚ ===== */
+.menu { background: #2a2a2a; position: sticky; top: 0; z-index: 10; }
+.menu ul {
+  display: flex; justify-content: center; gap: 2rem;
+  list-style: none; padding: 1rem; flex-wrap: wrap;
+}
+.menu a { color: #7cff7c; text-decoration: none; font-weight: bold; transition: color .3s; }
+.menu a:hover { color: #fff; }
+
+/* ===== SECCIONES ===== */
+.seccion { max-width: 1000px; margin: 3rem auto; padding: 0 1rem; }
+.seccion h2 {
+  color: #7cff7c; border-bottom: 2px solid #7cff7c;
+  padding-bottom: .4rem; margin-bottom: 1rem;
+}
+.img-flotante {
+  float: right; width: 220px;
+  margin: 0 0 1rem 1rem; border-radius: 8px;
+}
+
+/* ===== TARJETAS ===== */
+.tarjetas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.5rem;
+}
+.tarjeta {
+  background: #2a2a2a; padding: 1rem; border-radius: 10px;
+  transition: transform .3s;
+}
+.tarjeta:hover { transform: translateY(-6px); }
+.tarjeta img { width: 100%; border-radius: 8px; margin-bottom: .6rem; }
+
+/* ===== GALERÍA ===== */
+.galeria {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+.galeria img {
+  width: 100%; border-radius: 8px;
+  transition: transform .4s, box-shadow .4s; cursor: pointer;
+}
+.galeria img:hover { transform: scale(1.05); box-shadow: 0 0 20px #7cff7c; }
+
+/* ===== VIDEO ===== */
+.contenedor-video {
+  position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden;
+}
+.contenedor-video video,
+.contenedor-video iframe {
+  position: absolute; top: 0; left: 0;
+  width: 100%; height: 100%; border: none; border-radius: 10px;
+}
+
+/* ===== AUDIO ===== */
+audio { width: 100%; margin-top: 1rem; }
+
+/* ===== BOTÓN JUGAR ===== */
+.btn-jugar {
+  display: inline-block; margin-top: 1rem;
+  padding: .8rem 2rem;
+  background: #7cff7c; color: #1e1e1e;
+  text-decoration: none; font-weight: bold;
+  font-size: 1.1rem; border-radius: 10px;
+  transition: .3s;
+}
+.btn-jugar:hover {
+  background: #fff; transform: scale(1.05);
+  box-shadow: 0 0 20px #7cff7c;
+}
+
+/* ===== PIE ===== */
+footer {
+  text-align: center; padding: 1.5rem;
+  background: #111; margin-top: 3rem; font-size: .9rem;
+}

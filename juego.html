@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Minecraft 3D - Prototipo</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Courier New', monospace; overflow: hidden; background: #78c0ff; user-select: none; }
+    #canvas-container { position: fixed; inset: 0; z-index: 0; }
+    .mira { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 22px; height: 22px; z-index: 6; pointer-events: none; }
+    .mira::before, .mira::after { content: ''; position: absolute; background: rgba(255,255,255,.9); box-shadow: 0 0 3px rgba(0,0,0,.8); }
+    .mira::before { top: 50%; left: 0; width: 100%; height: 2px; transform: translateY(-50%); }
+    .mira::after { left: 50%; top: 0; width: 2px; height: 100%; transform: translateX(-50%); }
+    .mira .punto { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 4px; height: 4px; background: #fff; border-radius: 50%; box-shadow: 0 0 3px #000; }
+    .hud-top { position: fixed; top: 10px; left: 50%; transform: translateX(-50%); z-index: 10; text-align: center; pointer-events: none; }
+    .hud-top h1 { color: #fff; text-shadow: 2px 2px 0 #3a3a3a; font-size: 1.2rem; margin-bottom: 5px; }
+    .instrucciones { font-size: .75rem; color: #fff; background: rgba(0,0,0,.55); padding: 6px 14px; border-radius: 4px; text-shadow: 1px 1px 0 #000; }
+    .botones-camara { position: fixed; top: 10px; right: 10px; display: flex; flex-direction: column; gap: 8px; z-index: 10; }
+    .btn-camara { padding: 8px 14px; background: #5d5d5d; color: #fff; border: 3px solid #2f2f2f; border-radius: 4px; font-weight: bold; cursor: pointer; font-family: 'Courier New', monospace; font-size: .85rem; box-shadow: 0 4px 0 #2a2a2a; transition: transform .1s, background .2s; text-align: left; }
+    .btn-camara:hover { background: #7cff7c; color: #1e1e1e; }
+    .btn-camara:active { transform: translateY(2px); box-shadow: 0 2px 0 #2a2a2a; }
+    .btn-camara.activo { background: #7cff7c; color: #1e1e1e; border-color: #fff; }
+    .inventario { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 4px; background: #5d5d5d; padding: 6px; border: 3px solid #2f2f2f; border-radius: 4px; box-shadow: 0 4px 0 #2a2a2a; z-index: 10; }
+    .slot { width: 52px; height: 52px; border: 2px solid #2f2f2f; background-color: #8b8b8b; background-size: 100% 100%; background-repeat: no-repeat; cursor: pointer; image-rendering: pixelated; transition: transform .1s; position: relative; }
+    .slot:hover { transform: translateY(-4px); }
+    .slot.activo { border-color: #fff; box-shadow: 0 0 0 2px #fff, 0 0 15px #fff; transform: translateY(-6px); }
+    .slot.hierba { background-image: url('multimedia/texturas/hierba.png'); }
+    .slot.tierra { background-image: url('multimedia/texturas/tierra.png'); }
+    .slot.piedra { background-image: url('multimedia/texturas/piedra.png'); }
+    .slot.madera { background-image: url('multimedia/texturas/madera.png'); }
+    .slot.arena  { background-image: url('multimedia/texturas/arena.png'); }
+    .slot .numero { position: absolute; top: -6px; left: -6px; background: #000; color: #fff; font-size: 10px; padding: 1px 4px; border-radius: 3px; }
+    #mensaje { position: fixed; top: 80px; left: 50%; transform: translateX(-50%); font-size: .9rem; color: #fff; font-weight: bold; text-shadow: 1px 1px 0 #000; background: rgba(0,0,0,.55); padding: 6px 16px; border-radius: 4px; min-height: 1.6rem; z-index: 10; pointer-events: none; transition: opacity .3s; }
+    .btn-volver { position: fixed; top: 10px; left: 10px; padding: 8px 14px; background: #7cff7c; color: #1e1e1e; border: 3px solid #3a3a3a; border-radius: 4px; font-weight: bold; cursor: pointer; text-decoration: none; box-shadow: 0 4px 0 #3a3a3a; font-family: 'Courier New', monospace; font-size: .85rem; z-index: 10; transition: transform .1s; }
+    .btn-volver:hover { background: #fff; transform: translateY(-2px); }
+    .controles-info { position: fixed; bottom: 90px; right: 10px; background: rgba(0,0,0,.55); color: #fff; padding: 8px 12px; border-radius: 6px; font-size: .75rem; line-height: 1.6; z-index: 10; pointer-events: none; }
+    .controles-info kbd { background: #333; border: 1px solid #666; padding: 1px 5px; border-radius: 3px; font-family: inherit; }
+  </style>
+</head>
+<body>
+
+  <div id="canvas-container"></div>
+  <a href="index.html" class="btn-volver">⬅ Volver</a>
+  <div class="mira"><div class="punto"></div></div>
+
+  <div class="hud-top">
+    <h1>⛏️ Minecraft 3D - Prototipo</h1>
+    <p class="instrucciones">🖱️ Clic izq. = minar · 🖱️ Clic der. = colocar · Apunta con la mira</p>
+  </div>
+
+  <div class="botones-camara">
+    <button class="btn-camara" id="btnFijar">🔓 Cámara libre</button>
+    <button class="btn-camara" id="btnVista">👁️ 3ª persona</button>
+  </div>
+
+  <div id="mensaje">🎮 ¡Prototipo 3D listo!</div>
+  <div class="inventario" id="inventario"></div>
+
+  <div class="controles-info">
+    <kbd>W</kbd> adelante · <kbd>S</kbd> atrás<br>
+    <kbd>A</kbd> izquierda · <kbd>D</kbd> derecha<br>
+    <kbd>Espacio</kbd> saltar
+  </div>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+
+  <script type="module">
+    import * as THREE from 'three';
+
+    // ======================================================
+    // CONFIGURACIÓN
+    // ======================================================
+    const FILAS = 24;
+    const COLS  = 24;
+    const ALTO  = 5;
+    const ALCANCE = 12;
+
+    const COLORES_RESPALDO = {
+      hierba: 0x4caf50, tierra: 0x8d6e63, piedra: 0x8a8a8a,
+      madera: 0xa1887f, arena: 0xf5e6a3, agua: 0x4fc3f7
+    };
+
+    // ======================================================
+    // ESCENA
+    // ======================================================
+    const container = document.getElementById('canvas-container');
+    const escena = new THREE.Scene();
+    escena.background = new THREE.Color(0x78c0ff);
+    escena.fog = new THREE.Fog(0x78c0ff, 25, 60);
+
+    const camara = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 200);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: false });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1));
+    container.appendChild(renderer.domElement);
+
+    // ======================================================
+    // LUCES
+    // ======================================================
+    escena.add(new THREE.AmbientLight(0xffffff, 0.9));
+    const luzSol = new THREE.DirectionalLight(0xfff5e0, 1.0);
+    luzSol.position.set(20, 40, 20);
+    escena.add(luzSol);
+
+    // ======================================================
+    // TEXTURAS
+    // ======================================================
+    const cargadorTexturas = new THREE.TextureLoader();
+    const texturas = {};
+
+    function cargarTextura(nombre) {
+      return new Promise((resolve) => {
+        cargadorTexturas.load(
+          `multimedia/texturas/${nombre}.png`,
+          (tex) => {
+            tex.magFilter = THREE.NearestFilter;
+            tex.minFilter = THREE.NearestFilter;
+            tex.colorSpace = THREE.SRGBColorSpace;
+            texturas[nombre] = tex;
+            resolve();
+          },
+          undefined,
+          () => { texturas[nombre] = null; resolve(); }
+        );
+      });
+    }
+
+    async function cargarTodasLasTexturas() {
+      const nombres = ['hierba','tierra','piedra','madera','arena','agua'];
+      await Promise.all(nombres.map(n => cargarTextura(n)));
+    }
+
+    function crearMaterial(tipo) {
+      const tex = texturas[tipo];
+      if (tex) return new THREE.MeshLambertMaterial({ map: tex });
+      return new THREE.MeshLambertMaterial({ color: COLORES_RESPALDO[tipo] || 0x888888 });
+    }
+
+    // ======================================================
+    // MUNDO
+    // ======================================================
+    let mundo = [];
+    let meshesBloques = {};
+    const grupoMundo = new THREE.Group();
+    escena.add(grupoMundo);
+
+    function generarMundo() {
+      mundo = [];
+      const alturaBase = ALTO - 2;
+      for (let x = 0; x < FILAS; x++) {
+        mundo[x] = [];
+        for (let z = 0; z < COLS; z++) {
+          mundo[x][z] = [];
+          const ondulacion = Math.sin(x * 0.3) * 0.5 + Math.cos(z * 0.3) * 0.5;
+          const alturaTerreno = Math.max(2, Math.min(ALTO - 2, Math.round(alturaBase + ondulacion)));
+          for (let y = 0; y < ALTO; y++) {
+            let tipo;
+            if (y > alturaTerreno) tipo = 'vacio';
+            else if (y === alturaTerreno) tipo = 'hierba';
+            else if (y === alturaTerreno - 1) tipo = 'tierra';
+            else tipo = 'piedra';
+            mundo[x][z][y] = tipo;
+          }
+        }
+      }
+    }
+
+    function crearBloque(x, y, z, tipo) {
+      if (tipo === 'vacio') return null;
+      const geo = new THREE.BoxGeometry(1, 1, 1);
+      const caras = [];
+      caras[0] = (x < FILAS - 1 && mundo[x + 1] && mundo[x + 1][z][y] === 'vacio') ? crearMaterial(tipo) : null;
+      caras[1] = (x > 0 && mundo[x - 1][z][y] === 'vacio') ? crearMaterial(tipo) : null;
+      caras[2] = (y < ALTO - 1 && mundo[x][z][y + 1] === 'vacio') ? crearMaterial(tipo === 'hierba' ? 'hierba' : tipo) : null;
+      caras[3] = (y > 0 && mundo[x][z][y - 1] === 'vacio') ? crearMaterial('tierra') : null;
+      caras[4] = (z < COLS - 1 && mundo[x][z + 1][y] === 'vacio') ? crearMaterial(tipo) : null;
+      caras[5] = (z > 0 && mundo[x][z - 1][y] === 'vacio') ? crearMaterial(tipo) : null;
+      if (!caras.some(c => c !== null)) return null;
+      const mesh = new THREE.Mesh(geo, caras);
+      mesh.position.set(x, y, z);
+      mesh.userData = { x, y, z, tipo };
+      return mesh;
+    }
+
+    function dibujarMundo() {
+      while (grupoMundo.children.length > 0) {
+        const hijo = grupoMundo.children[0];
+        grupoMundo.remove(hijo);
+        if (hijo.geometry) hijo.geometry.dispose();
+      }
+      meshesBloques = {};
+      for (let x = 0; x < FILAS; x++) {
+        for (let z = 0; z < COLS; z++) {
+          for (let y = 0; y < ALTO; y++) {
+            const tipo = mundo[x][z][y];
+            const mesh = crearBloque(x, y, z, tipo);
+            if (mesh) {
+              grupoMundo.add(mesh);
+              meshesBloques[`${x},${y},${z}`] = mesh;
+            }
+          }
+        }
+      }
+    }
+
+    // ======================================================
+    // STEVE
+    // ======================================================
+    const steve = new THREE.Group();
+    let brazoIzq, brazoDer, piernaIzq, piernaDer;
+
+    function crearSteve() {
+      const matPiel     = new THREE.MeshLambertMaterial({ color: 0xe0b090 });
+      const matPelo     = new THREE.MeshLambertMaterial({ color: 0x3b2416 });
+      const matCamisa   = new THREE.MeshLambertMaterial({ color: 0x2fa8e0 });
+      const matPantalon = new THREE.MeshLambertMaterial({ color: 0x3a4a9a });
+      const matZapato   = new THREE.MeshLambertMaterial({ color: 0x222222 });
+      const matOjos     = new THREE.MeshBasicMaterial({ color: 0xffffff });
+      const matPupila   = new THREE.MeshBasicMaterial({ color: 0x3a2b8a });
+
+      const cabeza = new THREE.Group();
+      cabeza.add(new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.55, 0.55), matPiel));
+      const pelo = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.25, 0.6), matPelo);
+      pelo.position.y = 0.18; cabeza.add(pelo);
+      const flequillo = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.1, 0.1), matPelo);
+      flequillo.position.set(0, 0.08, 0.28); cabeza.add(flequillo);
+      const ojoIzq = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.14, 0.05), matOjos);
+      ojoIzq.position.set(-0.13, 0.05, 0.29); cabeza.add(ojoIzq);
+      const ojoDer = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.14, 0.05), matOjos);
+      ojoDer.position.set(0.13, 0.05, 0.29); cabeza.add(ojoDer);
+      const pupilaIzq = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.07, 0.06), matPupila);
+      pupilaIzq.position.set(-0.13, 0.05, 0.30); cabeza.add(pupilaIzq);
+      const pupilaDer = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.07, 0.06), matPupila);
+      pupilaDer.position.set(0.13, 0.05, 0.30); cabeza.add(pupilaDer);
+      const boca = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.04, 0.05), new THREE.MeshBasicMaterial({ color: 0x5a3a3a }));
+      boca.position.set(0, -0.15, 0.29); cabeza.add(boca);
+      cabeza.position.y = 1.5; steve.add(cabeza);
+
+      const cuerpo = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.8, 0.35), matCamisa);
+      cuerpo.position.y = 0.85; steve.add(cuerpo);
+
+      brazoIzq = new THREE.Group();
+      const bIzqMesh = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.75, 0.25), matCamisa);
+      bIzqMesh.position.y = -0.35; brazoIzq.add(bIzqMesh);
+      const manoIzq = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.15, 0.25), matPiel);
+      manoIzq.position.y = -0.8; brazoIzq.add(manoIzq);
+      brazoIzq.position.set(-0.4, 1.2, 0); steve.add(brazoIzq);
+
+      brazoDer = new THREE.Group();
+      const bDerMesh = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.75, 0.25), matCamisa);
+      bDerMesh.position.y = -0.35; brazoDer.add(bDerMesh);
+      const manoDer = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.15, 0.25), matPiel);
+      manoDer.position.y = -0.8; brazoDer.add(manoDer);
+      brazoDer.position.set(0.4, 1.2, 0); steve.add(brazoDer);
+
+      piernaIzq = new THREE.Group();
+      const pIzqMesh = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.65, 0.28), matPantalon);
+      pIzqMesh.position.y = -0.32; piernaIzq.add(pIzqMesh);
+      const zIzq = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.12, 0.32), matZapato);
+      zIzq.position.set(0, -0.68, 0.02); piernaIzq.add(zIzq);
+      piernaIzq.position.set(-0.15, 0.65, 0); steve.add(piernaIzq);
+
+      piernaDer = new THREE.Group();
+      const pDerMesh = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.65, 0.28), matPantalon);
+      pDerMesh.position.y = -0.32; piernaDer.add(pDerMesh);
+      const zDer = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.12, 0.32), matZapato);
+      zDer.position.set(0, -0.68, 0.02); piernaDer.add(zDer);
+      piernaDer.position.set(0.15, 0.65, 0); steve.add(piernaDer);
+    }
+
+    // ======================================================
+    // ESTADO DEL JUGADOR
+    // ======================================================
+    const estadoJugador = {
+      x: Math.floor(FILAS / 2),
+      y: ALTO,
+      z: Math.floor(COLS / 2),
+      rotacion: 0,
+      velocidadY: 0,
+      enSuelo: true,
+      caminando: false,
+      tiempoCaminando: 0
+    };
+
+    // ======================================================
+    // CÁMARA
+    // ======================================================
+    let camaraAngulo = 0;
+    let camaraPitch = 0.5;
+    let camaraDist = 6;
+    let camaraFija = false;
+    let primeraPersona = false;
+
+    function actualizarCamara() {
+      if (primeraPersona) {
+        const altoOjos = estadoJugador.y + 1.55;
+        camara.position.set(estadoJugador.x, altoOjos, estadoJugador.z);
+        const dirX = Math.sin(camaraAngulo + Math.PI);
+        const dirZ = Math.cos(camaraAngulo + Math.PI);
+        const dirY = (0.5 - camaraPitch) * 2;
+        camara.lookAt(
+          estadoJugador.x + dirX,
+          altoOjos + dirY,
+          estadoJugador.z + dirZ
+        );
+      } else {
+        const targetX = estadoJugador.x;
+        const targetY = estadoJugador.y + 1.5;
+        const targetZ = estadoJugador.z;
+        const offsetX = Math.sin(camaraAngulo) * camaraDist * Math.cos(camaraPitch);
+        const offsetZ = Math.cos(camaraAngulo) * camaraDist * Math.cos(camaraPitch);
+        const offsetY = Math.sin(camaraPitch) * camaraDist + 1;
+        camara.position.set(targetX - offsetX, targetY + offsetY, targetZ - offsetZ);
+        camara.lookAt(targetX, targetY, targetZ);
+      }
+    }
+
+    // ======================================================
+    // BOTONES
+    // ======================================================
+    const btnFijar = document.getElementById('btnFijar');
+    const btnVista = document.getElementById('btnVista');
+
+    btnFijar.addEventListener('click', () => {
+      camaraFija = !camaraFija;
+      btnFijar.textContent = camaraFija ? '🔒 Cámara fija' : '🔓 Cámara libre';
+      btnFijar.classList.toggle('activo', camaraFija);
+      mostrarMensaje(camaraFija ? '🔒 Cámara fijada.' : '🔓 Cámara libre.');
+    });
+
+    btnVista.addEventListener('click', () => {
+      primeraPersona = !primeraPersona;
+      btnVista.textContent = primeraPersona ? '👁️ 1ª persona' : '👁️ 3ª persona';
+      btnVista.classList.toggle('activo', primeraPersona);
+      steve.visible = !primeraPersona;
+      mostrarMensaje(primeraPersona ? '👁️ 1ª persona.' : '👁️ 3ª persona.');
+    });
+
+    // ======================================================
+    // CONTROLES
+    // ======================================================
+    const teclas = {};
+    document.addEventListener('keydown', e => {
+      teclas[e.key.toLowerCase()] = true;
+      if (e.key === ' ') e.preventDefault();
+    });
+    document.addEventListener('keyup', e => {
+      teclas[e.key.toLowerCase()] = false;
+    });
+
+    let arrastrando = false;
+    let ultimoX = 0, ultimoY = 0;
+
+    renderer.domElement.addEventListener('mousedown', e => {
+      if (e.button === 2) return;
+      if (camaraFija) return;
+      arrastrando = true;
+      ultimoX = e.clientX;
+      ultimoY = e.clientY;
+    });
+
+    document.addEventListener('mouseup', () => { arrastrando = false; });
+
+    document.addEventListener('mousemove', e => {
+      if (arrastrando && !camaraFija) {
+        camaraAngulo -= (e.clientX - ultimoX) * 0.005;
+        camaraPitch += (e.clientY - ultimoY) * 0.005;
+        camaraPitch = Math.max(0.1, Math.min(1.2, camaraPitch));
+        ultimoX = e.clientX;
+        ultimoY = e.clientY;
+      }
+    });
+
+    renderer.domElement.addEventListener('wheel', e => {
+      if (primeraPersona) return;
+      camaraDist += e.deltaY * 0.01;
+      camaraDist = Math.max(3, Math.min(15, camaraDist));
+    });
+
+    // ======================================================
+    // RAYCASTER — SOLUCIÓN DEFINITIVA
+    // Disparamos desde la CÁMARA hacia el CENTRO de la pantalla
+    // ======================================================
+    const raycaster = new THREE.Raycaster();
+    raycaster.far = 200;
+
+    function obtenerBloqueApuntado() {
+      // El rayo sale desde la cámara pasando por el centro de la pantalla
+      raycaster.setFromCamera(new THREE.Vector2(0, 0), camara);
+
+      // Buscar intersección con todos los bloques del mundo
+      const interseccion = raycaster.intersectObjects(grupoMundo.children, false);
+      if (interseccion.length === 0) return null;
+
+      // Recorrer los bloques intersectados y devolver el PRIMERO dentro del alcance
+      for (const hit of interseccion) {
+        if (!hit.object.userData || hit.object.userData.x === undefined) continue;
+
+        const dx = hit.object.userData.x - estadoJugador.x;
+        const dy = hit.object.userData.y - estadoJugador.y;
+        const dz = hit.object.userData.z - estadoJugador.z;
+        const distancia = Math.sqrt(dx*dx + dy*dy + dz*dz);
+
+        if (distancia <= ALCANCE) {
+          return hit;
+        }
+      }
+
+      mostrarMensaje('📏 Muy lejos. Acércate.');
+      return null;
+    }
+
+    // 🖱️ Clic izquierdo = MINAR
+    renderer.domElement.addEventListener('click', e => {
+      if (e.button !== 0) return;
+      const hit = obtenerBloqueApuntado();
+      if (!hit) {
+        mostrarMensaje('👀 No apuntas a ningún bloque.');
+        return;
+      }
+
+      const { x, y, z, tipo } = hit.object.userData;
+      mundo[x][z][y] = 'vacio';
+      grupoMundo.remove(hit.object);
+      delete meshesBloques[`${x},${y},${z}`];
+      redibujarVecinos(x, y, z);
+      mostrarMensaje(`⛏️ Minaste ${tipo}.`);
+    });
+
+    // 🖱️ Clic derecho = COLOCAR
+    renderer.domElement.addEventListener('contextmenu', e => {
+      e.preventDefault();
+      const hit = obtenerBloqueApuntado();
+      if (!hit) {
+        mostrarMensaje('👀 No apuntas a ningún bloque.');
+        return;
+      }
+
+      const normal = hit.face.normal;
+      const x = hit.object.userData.x + normal.x;
+      const y = hit.object.userData.y + normal.y;
+      const z = hit.object.userData.z + normal.z;
+
+      if (x < 0 || x >= FILAS || z < 0 || z >= COLS || y < 0 || y >= ALTO) {
+        mostrarMensaje('🚧 Fuera del mundo.');
+        return;
+      }
+      if (mundo[x][z][y] !== 'vacio') {
+        mostrarMensaje('❌ Bloque ocupado.');
+        return;
+      }
+
+      mundo[x][z][y] = bloqueSeleccionado;
+      const mesh = crearBloque(x, y, z, bloqueSeleccionado);
+      if (mesh) {
+        grupoMundo.add(mesh);
+        meshesBloques[`${x},${y},${z}`] = mesh;
+      }
+      redibujarVecinos(x, y, z);
+      mostrarMensaje(`🧱 Colocaste ${bloqueSeleccionado}.`);
+    });
+
+    function redibujarVecinos(x, y, z) {
+      const vecinos = [[x+1,y,z],[x-1,y,z],[x,y+1,z],[x,y-1,z],[x,y,z+1],[x,y,z-1]];
+      vecinos.forEach(([nx,ny,nz]) => {
+        if (nx<0||nx>=FILAS||nz<0||nz>=COLS||ny<0||ny>=ALTO) return;
+        const key = `${nx},${ny},${nz}`;
+        const old = meshesBloques[key];
+        if (old) { grupoMundo.remove(old); delete meshesBloques[key]; }
+        const nuevo = crearBloque(nx, ny, nz, mundo[nx][nz][ny]);
+        if (nuevo) { grupoMundo.add(nuevo); meshesBloques[key] = nuevo; }
+      });
+    }
+
+    // ======================================================
+    // INVENTARIO
+    // ======================================================
+    let bloqueSeleccionado = 'piedra';
+    const inventarioDiv = document.getElementById('inventario');
+
+    function dibujarInventario() {
+      const opciones = ['hierba','tierra','piedra','madera','arena'];
+      inventarioDiv.innerHTML = '';
+      opciones.forEach((tipo, i) => {
+        const slot = document.createElement('div');
+        slot.className = `slot ${tipo}`;
+        slot.title = tipo;
+        if (tipo === bloqueSeleccionado) slot.classList.add('activo');
+        slot.innerHTML = `<span class="numero">${i + 1}</span>`;
+        slot.addEventListener('click', () => {
+          bloqueSeleccionado = tipo;
+          document.querySelectorAll('.slot').forEach(s => s.classList.remove('activo'));
+          slot.classList.add('activo');
+          mostrarMensaje(`🎒 Bloque: ${tipo}`);
+        });
+        inventarioDiv.appendChild(slot);
+      });
+    }
+
+    document.addEventListener('keydown', e => {
+      const n = parseInt(e.key);
+      if (n >= 1 && n <= 5) {
+        const opciones = ['hierba','tierra','piedra','madera','arena'];
+        bloqueSeleccionado = opciones[n - 1];
+        document.querySelectorAll('.slot').forEach((s, i) => {
+          s.classList.toggle('activo', i === n - 1);
+        });
+        mostrarMensaje(`🎒 Bloque: ${bloqueSeleccionado}`);
+      }
+    });
+
+    // ======================================================
+    // MENSAJES
+    // ======================================================
+    const mensajeDiv = document.getElementById('mensaje');
+    let mensajeTimeout;
+
+    function mostrarMensaje(texto) {
+      mensajeDiv.textContent = texto;
+      mensajeDiv.style.opacity = 1;
+      clearTimeout(mensajeTimeout);
+      mensajeTimeout = setTimeout(() => {
+        mensajeDiv.style.opacity = 0.6;
+      }, 2000);
+    }
+
+    // ======================================================
+    // MOVIMIENTO — CONTROLES QUE YA FUNCIONABAN
+    // ======================================================
+    function moverJugador(delta) {
+      const velocidad = 5;
+
+      const adelante  = teclas['w'] || teclas['arrowup'];
+      const atras     = teclas['s'] || teclas['arrowdown'];
+      const izquierda = teclas['a'] || teclas['arrowleft'];
+      const derecha   = teclas['d'] || teclas['arrowright'];
+
+      let moveX = 0, moveZ = 0;
+      if (adelante)  moveZ += 1;
+      if (atras)     moveZ -= 1;
+      if (izquierda) moveX -= 1;
+      if (derecha)   moveX += 1;
+
+      if (moveX === 0 && moveZ === 0) {
+        estadoJugador.caminando = false;
+        return;
+      }
+
+      const len = Math.sqrt(moveX * moveX + moveZ * moveZ);
+      moveX /= len;
+      moveZ /= len;
+
+      const cosA = Math.cos(camaraAngulo);
+      const sinA = Math.sin(camaraAngulo);
+
+      const dirX = moveZ * sinA + moveX * cosA;
+      const dirZ = moveZ * cosA - moveX * sinA;
+
+      const nuevaX = estadoJugador.x + dirX * velocidad * delta;
+      const nuevaZ = estadoJugador.z + dirZ * velocidad * delta;
+
+      const bloqueX = Math.round(nuevaX);
+      const bloqueZ = Math.round(nuevaZ);
+      const bloqueY = Math.floor(estadoJugador.y);
+
+      if (bloqueX >= 0 && bloqueX < FILAS && bloqueZ >= 0 && bloqueZ < COLS) {
+        const tipoDestino = mundo[bloqueX][bloqueZ][Math.min(bloqueY, ALTO - 1)];
+        if (tipoDestino === 'vacio' || bloqueY >= ALTO) {
+          estadoJugador.x = nuevaX;
+          estadoJugador.z = nuevaZ;
+          estadoJugador.rotacion = Math.atan2(dirX, dirZ);
+          estadoJugador.caminando = true;
+        }
+      }
+    }
+
+    // ======================================================
+    // FÍSICA
+    // ======================================================
+    function actualizarFisica(delta) {
+      if (!estadoJugador.enSuelo) {
+        estadoJugador.velocidadY -= 20 * delta;
+      }
+      if (teclas[' '] && estadoJugador.enSuelo) {
+        estadoJugador.velocidadY = 7;
+        estadoJugador.enSuelo = false;
+      }
+      estadoJugador.y += estadoJugador.velocidadY * delta;
+
+      const bx = Math.round(estadoJugador.x);
+      const bz = Math.round(estadoJugador.z);
+
+      let alturaSuelo = 0;
+      if (bx >= 0 && bx < FILAS && bz >= 0 && bz < COLS) {
+        for (let y = ALTO - 1; y >= 0; y--) {
+          if (mundo[bx][bz][y] !== 'vacio') {
+            alturaSuelo = y + 1;
+            break;
+          }
+        }
+      }
+
+      if (estadoJugador.y <= alturaSuelo) {
+        estadoJugador.y = alturaSuelo;
+        estadoJugador.velocidadY = 0;
+        estadoJugador.enSuelo = true;
+      } else {
+        estadoJugador.enSuelo = false;
+      }
+    }
+
+    // ======================================================
+    // ANIMACIÓN DE STEVE
+    // ======================================================
+    function animarSteve(delta) {
+      if (!brazoIzq) return;
+      if (estadoJugador.caminando) {
+        estadoJugador.tiempoCaminando += delta * 10;
+        const swing = Math.sin(estadoJugador.tiempoCaminando) * 0.7;
+        brazoIzq.rotation.x = swing;
+        brazoDer.rotation.x = -swing;
+        piernaIzq.rotation.x = -swing;
+        piernaDer.rotation.x = swing;
+      } else {
+        brazoIzq.rotation.x *= 0.85;
+        brazoDer.rotation.x *= 0.85;
+        piernaIzq.rotation.x *= 0.85;
+        piernaDer.rotation.x *= 0.85;
+      }
+    }
+
+    // ======================================================
+    // NUBES
+    // ======================================================
+    const nubes = [];
+    function crearNubes() {
+      const geoNube = new THREE.BoxGeometry(4, 1, 3);
+      const matNube = new THREE.MeshLambertMaterial({ color: 0xffffff, transparent: true, opacity: 0.85 });
+      for (let i = 0; i < 12; i++) {
+        const nube = new THREE.Mesh(geoNube, matNube);
+        nube.position.set(
+          (Math.random() - 0.5) * 120,
+          18 + Math.random() * 12,
+          (Math.random() - 0.5) * 120
+        );
+        nube.scale.setScalar(0.8 + Math.random() * 1.2);
+        nube.userData = { velocidad: 0.8 + Math.random() * 1.2 };
+        escena.add(nube);
+        nubes.push(nube);
+      }
+    }
+    function actualizarNubes(delta) {
+      nubes.forEach(nube => {
+        nube.position.x += nube.userData.velocidad * delta;
+        if (nube.position.x > 80) {
+          nube.position.x = -80;
+          nube.position.z = (Math.random() - 0.5) * 120;
+        }
+      });
+    }
+
+    // ======================================================
+    // BUCLE PRINCIPAL
+    // ======================================================
+    let ultimoTiempo = performance.now();
+    function animar() {
+      requestAnimationFrame(animar);
+      const ahora = performance.now();
+      const delta = Math.min((ahora - ultimoTiempo) / 1000, 0.1);
+      ultimoTiempo = ahora;
+
+      moverJugador(delta);
+      actualizarFisica(delta);
+
+      steve.position.set(estadoJugador.x, estadoJugador.y, estadoJugador.z);
+      steve.rotation.y = estadoJugador.rotacion;
+
+      animarSteve(delta);
+      actualizarCamara();
+      actualizarNubes(delta);
+
+      renderer.render(escena, camara);
+    }
+
+    window.addEventListener('resize', () => {
+      camara.aspect = window.innerWidth / window.innerHeight;
+      camara.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    async function iniciar() {
+      mostrarMensaje('⏳ Cargando...');
+      await cargarTodasLasTexturas();
+      generarMundo();
+      dibujarMundo();
+      crearSteve();
+      steve.position.set(estadoJugador.x, estadoJugador.y, estadoJugador.z);
+      escena.add(steve);
+      crearNubes();
+      dibujarInventario();
+      mostrarMensaje('🎮 ¡Listo! Apunta con la mira.');
+      animar();
+    }
+
+    iniciar();
+  </script>
+</body>
+</html>
